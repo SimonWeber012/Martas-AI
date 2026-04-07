@@ -1,0 +1,1013 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DP Asistent · Smart Cities</title>
+<link href="https://fonts.googleapis.com/css2?family=Google+Sans:wght@400;500;600&family=Google+Sans+Text:wght@400;500&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0;}
+
+:root{
+  --bg:#0f0f0f;
+  --surface:#1c1c1e;
+  --surface2:#2a2a2e;
+  --surface3:#38383d;
+  --border:#2f2f35;
+  --text:#e8eaed;
+  --text2:#9aa0a6;
+  --text3:#5f6368;
+  --accent:#8ab4f8;
+  --accent2:#c58af9;
+  --accent3:#81c995;
+  --user-bubble:#1a3a5c;
+  --ai-bubble:#1c1c1e;
+  --r:16px;
+  --r2:24px;
+}
+
+html,body{width:100%;height:100%;background:var(--bg);font-family:'Google Sans Text',sans-serif;color:var(--text);overflow:hidden;}
+
+/* ── LAYOUT ── */
+.app{display:flex;height:100vh;width:100vw;}
+
+/* ── SIDEBAR ── */
+.sidebar{
+  width:280px;min-width:280px;
+  background:var(--surface);
+  border-right:1px solid var(--border);
+  display:flex;flex-direction:column;
+  padding:20px 0;
+  transition:transform .3s ease;
+  z-index:10;
+}
+.sidebar-logo{
+  display:flex;align-items:center;gap:10px;
+  padding:0 20px 24px;
+  font-family:'Google Sans',sans-serif;
+  font-size:18px;font-weight:600;
+  color:var(--text);
+}
+.logo-icon{
+  width:32px;height:32px;border-radius:50%;
+  background:linear-gradient(135deg,var(--accent),var(--accent2));
+  display:flex;align-items:center;justify-content:center;
+  font-size:14px;font-weight:700;color:#fff;flex-shrink:0;
+}
+.new-chat-btn{
+  margin:0 12px 20px;
+  display:flex;align-items:center;gap:10px;
+  padding:12px 16px;
+  background:transparent;
+  border:1px solid var(--border);
+  border-radius:50px;
+  color:var(--text);
+  font-size:14px;font-weight:500;
+  cursor:pointer;
+  transition:background .15s;
+  font-family:inherit;
+}
+.new-chat-btn:hover{background:var(--surface2);}
+.new-chat-btn svg{flex-shrink:0;}
+
+.sidebar-section{
+  font-size:11px;font-weight:600;
+  color:var(--text3);letter-spacing:.8px;text-transform:uppercase;
+  padding:0 20px 8px;
+}
+.history-list{flex:1;overflow-y:auto;padding:0 8px;scrollbar-width:none;}
+.history-list::-webkit-scrollbar{display:none;}
+.history-item{
+  padding:10px 12px;border-radius:10px;
+  font-size:13px;color:var(--text2);cursor:pointer;
+  display:flex;align-items:center;gap:8px;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+  transition:background .12s;
+}
+.history-item:hover{background:var(--surface2);}
+.history-item.active{background:var(--surface3);color:var(--text);}
+.h-dot{width:6px;height:6px;border-radius:50%;background:var(--accent);flex-shrink:0;}
+
+.sidebar-footer{
+  padding:16px 12px 0;border-top:1px solid var(--border);margin-top:8px;
+}
+.model-badge{
+  display:flex;align-items:center;gap:8px;
+  padding:10px 12px;border-radius:10px;
+  font-size:12px;color:var(--text2);
+  background:var(--surface2);
+}
+.model-badge-dot{
+  width:8px;height:8px;border-radius:50%;
+  background:var(--accent3);flex-shrink:0;
+  box-shadow:0 0 6px var(--accent3);
+}
+
+/* ── MAIN ── */
+.main{flex:1;display:flex;flex-direction:column;min-width:0;position:relative;}
+
+/* ── TOP BAR ── */
+.topbar{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:16px 24px;
+  border-bottom:1px solid var(--border);
+  background:var(--bg);
+  position:relative;z-index:5;
+}
+.topbar-title{
+  font-family:'Google Sans',sans-serif;
+  font-size:16px;font-weight:600;color:var(--text);
+}
+.topbar-subtitle{font-size:12px;color:var(--text3);margin-top:1px;}
+.topbar-right{display:flex;gap:8px;align-items:center;}
+.icon-btn{
+  width:36px;height:36px;border-radius:50%;border:none;
+  background:transparent;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;
+  color:var(--text2);transition:background .12s;
+}
+.icon-btn:hover{background:var(--surface2);}
+.hamburger{display:none;}
+
+/* ── CHAT AREA ── */
+.chat-area{
+  flex:1;overflow-y:auto;overflow-x:hidden;
+  padding:0;
+  scrollbar-width:thin;scrollbar-color:var(--surface3) transparent;
+  position:relative;
+}
+.chat-area::-webkit-scrollbar{width:4px;}
+.chat-area::-webkit-scrollbar-thumb{background:var(--surface3);border-radius:2px;}
+
+/* ── WELCOME SCREEN ── */
+.welcome{
+  max-width:700px;margin:0 auto;
+  padding:60px 24px 40px;
+  text-align:center;
+}
+.welcome-avatar{
+  width:80px;height:80px;border-radius:50%;
+  background:linear-gradient(135deg,var(--accent) 0%,var(--accent2) 50%,var(--accent3) 100%);
+  display:flex;align-items:center;justify-content:center;
+  margin:0 auto 24px;
+  font-size:30px;font-weight:700;color:#fff;
+  position:relative;
+  box-shadow:0 0 40px rgba(138,180,248,.3);
+  animation:pulseGlow 3s ease-in-out infinite;
+}
+@keyframes pulseGlow{
+  0%,100%{box-shadow:0 0 30px rgba(138,180,248,.25);}
+  50%{box-shadow:0 0 55px rgba(197,138,249,.4);}
+}
+.welcome-avatar::after{
+  content:'DP';position:absolute;
+  font-family:'Google Sans',sans-serif;font-size:26px;font-weight:700;
+}
+.welcome h1{
+  font-family:'Google Sans',sans-serif;
+  font-size:28px;font-weight:600;
+  background:linear-gradient(135deg,var(--accent),var(--accent2),var(--accent3));
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;
+  margin-bottom:10px;
+}
+.welcome p{font-size:15px;color:var(--text2);line-height:1.6;max-width:480px;margin:0 auto 36px;}
+
+.chips{display:flex;flex-wrap:wrap;gap:10px;justify-content:center;}
+.chip{
+  display:flex;align-items:center;gap:8px;
+  padding:10px 16px;
+  background:var(--surface);
+  border:1px solid var(--border);
+  border-radius:50px;
+  font-size:13px;color:var(--text2);cursor:pointer;
+  transition:all .15s;font-family:inherit;
+  text-align:left;
+}
+.chip:hover{background:var(--surface2);border-color:var(--accent);color:var(--text);}
+.chip-icon{font-size:15px;}
+
+/* ── MESSAGES ── */
+.messages{max-width:780px;margin:0 auto;padding:24px 24px 16px;}
+.msg{display:flex;gap:14px;margin-bottom:24px;animation:fadeIn .3s ease;}
+@keyframes fadeIn{from{opacity:0;transform:translateY(8px);}to{opacity:1;transform:translateY(0);}}
+.msg.user{flex-direction:row-reverse;}
+
+/* AI Avatar */
+.msg-av{
+  width:36px;height:36px;border-radius:50%;flex-shrink:0;
+  background:linear-gradient(135deg,var(--accent),var(--accent2));
+  display:flex;align-items:center;justify-content:center;
+  font-size:12px;font-weight:700;color:#fff;margin-top:2px;
+}
+.msg.user .msg-av{background:linear-gradient(135deg,#3a6186,#89253e);}
+
+.msg-content{max-width:72%;display:flex;flex-direction:column;gap:6px;}
+.msg.user .msg-content{align-items:flex-end;}
+
+.msg-bubble{
+  padding:13px 17px;border-radius:18px;
+  font-size:14.5px;line-height:1.65;
+  border-radius:4px 18px 18px 18px;
+}
+.msg.user .msg-bubble{
+  background:var(--user-bubble);
+  color:var(--text);border-radius:18px 4px 18px 18px;
+}
+.msg.ai .msg-bubble{background:transparent;padding-left:0;}
+
+.msg-bubble p{margin-bottom:10px;}
+.msg-bubble p:last-child{margin-bottom:0;}
+.msg-bubble strong{color:var(--text);font-weight:600;}
+.msg-bubble ul,
+.msg-bubble ol{padding-left:20px;margin-bottom:10px;}
+.msg-bubble li{margin-bottom:4px;}
+.msg-bubble h3{font-size:15px;font-weight:600;margin-bottom:8px;color:var(--text);}
+.msg-bubble code{
+  background:var(--surface2);border:1px solid var(--border);
+  border-radius:4px;padding:1px 5px;font-size:12.5px;font-family:monospace;
+}
+.msg-bubble blockquote{
+  border-left:3px solid var(--accent);
+  padding-left:12px;color:var(--text2);margin:8px 0;
+}
+.msg-time{font-size:11px;color:var(--text3);padding:0 4px;}
+
+/* Typing indicator */
+.typing{display:flex;align-items:center;gap:5px;padding:14px 0;}
+.dot{
+  width:7px;height:7px;border-radius:50%;
+  background:var(--accent);opacity:.5;
+  animation:bounce .9s ease-in-out infinite;
+}
+.dot:nth-child(1){animation-delay:0s;}
+.dot:nth-child(2){animation-delay:.15s;}
+.dot:nth-child(3){animation-delay:.3s;}
+@keyframes bounce{
+  0%,80%,100%{transform:translateY(0);opacity:.5;}
+  40%{transform:translateY(-6px);opacity:1;}
+}
+
+/* action buttons under AI msg */
+.msg-actions{display:flex;gap:4px;margin-top:2px;opacity:0;transition:opacity .15s;}
+.msg:hover .msg-actions{opacity:1;}
+.msg-act-btn{
+  width:30px;height:30px;border-radius:50%;border:none;
+  background:transparent;color:var(--text3);cursor:pointer;
+  display:flex;align-items:center;justify-content:center;
+  font-size:13px;transition:background .12s,color .12s;
+}
+.msg-act-btn:hover{background:var(--surface2);color:var(--text2);}
+
+/* ── SOURCE CHIPS ── */
+.source-chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px;}
+.source-chip{
+  display:flex;align-items:center;gap:5px;
+  padding:4px 10px;border-radius:6px;
+  background:var(--surface2);border:1px solid var(--border);
+  font-size:11.5px;color:var(--text3);
+  font-weight:500;
+}
+.source-chip span{color:var(--accent);font-size:10px;}
+
+/* ── INPUT AREA ── */
+.input-wrap{
+  padding:16px 24px 20px;
+  border-top:1px solid var(--border);
+  background:var(--bg);
+  position:relative;z-index:5;
+}
+.input-container{
+  max-width:780px;margin:0 auto;
+  background:var(--surface);
+  border:1px solid var(--border);
+  border-radius:var(--r2);
+  padding:12px 14px 10px;
+  display:flex;flex-direction:column;gap:10px;
+  transition:border-color .15s,box-shadow .15s;
+}
+.input-container:focus-within{
+  border-color:var(--accent);
+  box-shadow:0 0 0 3px rgba(138,180,248,.1);
+}
+.input-row{display:flex;align-items:flex-end;gap:10px;}
+#chat-input{
+  flex:1;background:transparent;border:none;outline:none;
+  resize:none;font-size:14.5px;color:var(--text);
+  font-family:inherit;line-height:1.55;
+  max-height:140px;overflow-y:auto;scrollbar-width:none;
+  min-height:22px;
+}
+#chat-input::-webkit-scrollbar{display:none;}
+#chat-input::placeholder{color:var(--text3);}
+
+.send-btn{
+  width:36px;height:36px;border-radius:50%;border:none;
+  background:var(--accent);color:#0f0f0f;
+  cursor:pointer;flex-shrink:0;
+  display:flex;align-items:center;justify-content:center;
+  transition:background .15s,transform .1s,opacity .15s;
+  font-size:16px;
+}
+.send-btn:disabled{opacity:.35;cursor:default;}
+.send-btn:not(:disabled):hover{background:#aac9fb;transform:scale(1.05);}
+.send-btn:not(:disabled):active{transform:scale(.95);}
+
+.input-bottom{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:0 2px;
+}
+.input-tools{display:flex;gap:2px;}
+.tool-btn{
+  width:30px;height:30px;border-radius:8px;border:none;
+  background:transparent;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;
+  color:var(--text3);transition:background .12s,color .12s;font-size:14px;
+}
+.tool-btn:hover{background:var(--surface2);color:var(--text2);}
+.char-counter{font-size:11px;color:var(--text3);}
+
+/* Error banner */
+.error-banner{
+  background:rgba(234,67,53,.12);border:1px solid rgba(234,67,53,.3);
+  border-radius:10px;padding:10px 14px;
+  font-size:13px;color:#ea4335;margin-bottom:12px;
+  display:flex;align-items:center;gap:8px;
+}
+
+/* ── API KEY MODAL ── */
+.modal-overlay{
+  position:fixed;inset:0;background:rgba(0,0,0,.75);
+  display:flex;align-items:center;justify-content:center;z-index:200;
+  backdrop-filter:blur(8px);
+}
+.modal{
+  background:var(--surface);border:1px solid var(--border);
+  border-radius:20px;padding:32px;max-width:440px;width:90%;
+  animation:modalIn .25s cubic-bezier(.34,1.56,.64,1);
+}
+@keyframes modalIn{from{transform:scale(.9);opacity:0;}to{transform:scale(1);opacity:1;}}
+.modal h2{
+  font-family:'Google Sans',sans-serif;font-size:20px;font-weight:600;
+  margin-bottom:8px;
+}
+.modal p{font-size:14px;color:var(--text2);line-height:1.6;margin-bottom:20px;}
+.modal-input{
+  width:100%;padding:12px 14px;
+  background:var(--surface2);border:1px solid var(--border);
+  border-radius:10px;color:var(--text);font-size:14px;font-family:inherit;
+  outline:none;margin-bottom:10px;
+  transition:border-color .15s;
+}
+.modal-input:focus{border-color:var(--accent);}
+.modal-hint{
+  font-size:12px;color:var(--text3);margin-bottom:20px;line-height:1.5;
+}
+.modal-hint a{color:var(--accent);text-decoration:none;}
+.modal-actions{display:flex;gap:10px;justify-content:flex-end;}
+.btn-secondary{
+  padding:10px 20px;border-radius:50px;border:1px solid var(--border);
+  background:transparent;color:var(--text2);font-size:14px;
+  cursor:pointer;font-family:inherit;transition:background .12s;
+}
+.btn-secondary:hover{background:var(--surface2);}
+.btn-primary{
+  padding:10px 24px;border-radius:50px;border:none;
+  background:var(--accent);color:#0f0f0f;font-size:14px;font-weight:600;
+  cursor:pointer;font-family:inherit;transition:background .12s;
+}
+.btn-primary:hover{background:#aac9fb;}
+.btn-primary:disabled{opacity:.5;cursor:default;}
+
+/* ── RESPONSIVE ── */
+@media(max-width:700px){
+  .sidebar{position:fixed;top:0;left:0;height:100%;transform:translateX(-100%);}
+  .sidebar.open{transform:translateX(0);}
+  .hamburger{display:flex;}
+  .sidebar-overlay{
+    display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:9;
+  }
+  .sidebar-overlay.show{display:block;}
+  .welcome h1{font-size:22px;}
+  .msg-content{max-width:88%;}
+  .messages{padding:16px 14px 12px;}
+  .input-wrap{padding:12px 14px 16px;}
+}
+
+/* Scroll to bottom button */
+.scroll-btn{
+  position:absolute;bottom:16px;right:24px;
+  width:36px;height:36px;border-radius:50%;
+  background:var(--surface2);border:1px solid var(--border);
+  color:var(--text2);cursor:pointer;
+  display:none;align-items:center;justify-content:center;
+  font-size:16px;transition:background .12s;z-index:10;
+}
+.scroll-btn.show{display:flex;}
+.scroll-btn:hover{background:var(--surface3);}
+
+/* Highlight chips in welcome */
+.gradient-text{
+  background:linear-gradient(135deg,var(--accent),var(--accent2));
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;
+  font-weight:600;
+}
+</style>
+</head>
+<body>
+
+<!-- API Key Modal -->
+<div class="modal-overlay" id="modal" style="display:none;">
+  <div class="modal">
+    <div style="font-size:28px;margin-bottom:12px;">🔑</div>
+    <h2>Zadejte váš Anthropic API klíč</h2>
+    <p>Tento asistent potřebuje váš vlastní klíč pro přístup k AI. Klíč se uloží <strong>pouze do vašeho prohlížeče</strong> (localStorage) a nikam se neodesílá.</p>
+
+    <div style="background:var(--surface2);border-radius:10px;padding:14px 16px;margin-bottom:16px;font-size:13px;line-height:1.8;color:var(--text2);">
+      <div style="font-weight:600;color:var(--text);margin-bottom:6px;">Jak získat klíč (zdarma):</div>
+      <div>1️⃣ Jděte na <a href="https://aistudio.google.com/apikey" target="_blank" style="color:var(--accent);">aistudio.google.com/apikey</a></div>
+      <div>2️⃣ Přihlaste se Google účtem</div>
+      <div>3️⃣ Klikněte na <strong>Get API key → Create API key</strong></div>
+      <div>4️⃣ Zkopírujte klíč (začíná <code>AIza</code>) a vložte níže</div>
+    </div>
+
+    <input class="modal-input" id="api-key-input" type="password" placeholder="AIzaSy..." autocomplete="off">
+    <div class="modal-hint" style="margin-bottom:16px;">
+      🔒 Klíč se uloží jen do vašeho prohlížeče. Kdykoli ho smažete v Nastavení → Vymazat klíč.
+    </div>
+    <div class="modal-actions">
+      <button class="btn-secondary" onclick="closeModal()">Zavřít</button>
+      <button class="btn-primary" id="save-key-btn" onclick="saveApiKey()" disabled>✓ Uložit a spustit</button>
+    </div>
+  </div>
+</div>
+
+<div class="sidebar-overlay" id="sidebar-overlay" onclick="closeSidebar()"></div>
+
+<div class="app">
+
+  <!-- SIDEBAR -->
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-logo">
+      <div class="logo-icon">DP</div>
+      Smart Cities AI
+    </div>
+
+    <button class="new-chat-btn" onclick="newChat()">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+      Nový chat
+    </button>
+
+    <div class="sidebar-section">Historie</div>
+    <div class="history-list" id="history-list">
+      <div class="history-item active">
+        <div class="h-dot"></div>
+        <span>Nový chat</span>
+      </div>
+    </div>
+
+    <div class="sidebar-footer">
+      <div class="model-badge">
+        <div class="model-badge-dot"></div>
+        <div>
+          <div style="font-size:12px;color:var(--text2);font-weight:500;">gemini-2.0-flash</div>
+          <div style="font-size:11px;color:var(--text3);">Smart Cities kontext</div>
+        </div>
+        <div style="margin-left:auto;display:flex;gap:4px;">
+          <button class="icon-btn" onclick="openModal()" title="Změnit API klíč" style="width:28px;height:28px;">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4"/></svg>
+          </button>
+          <button class="icon-btn" onclick="deleteKey()" title="Vymazat API klíč" style="width:28px;height:28px;">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+          </button>
+        </div>
+      </div>
+    </div>
+  </aside>
+
+  <!-- MAIN -->
+  <main class="main">
+    <!-- Topbar -->
+    <div class="topbar">
+      <div style="display:flex;align-items:center;gap:12px;">
+        <button class="icon-btn hamburger" id="hamburger" onclick="toggleSidebar()">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+        </button>
+        <div>
+          <div class="topbar-title">Asistent k diplomové práci</div>
+          <div class="topbar-subtitle">Politiky a strategie EU pro podporu Smart Cities · Bc. Martin Beránek</div>
+        </div>
+      </div>
+      <div class="topbar-right">
+        <button class="icon-btn" title="Nastavit API klíč" onclick="openModal()">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4"/></svg>
+        </button>
+        <button class="icon-btn" title="Vymazat chat" onclick="clearChat()">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+        </button>
+      </div>
+    </div>
+
+    <!-- Chat area -->
+    <div class="chat-area" id="chat-area">
+      <!-- Welcome -->
+      <div id="welcome-screen" class="welcome">
+        <div class="welcome-avatar"></div>
+        <h1>Smart Cities AI Asistent</h1>
+        <p>Specializovaný asistent k diplomové práci <span class="gradient-text">„Politiky a strategie EU pro podporu Smart Cities"</span> — ČZU Praha, 2026. Pro použití zadejte svůj Anthropic API klíč.</p>
+        <div class="chips">
+          <button class="chip" onclick="askChip(this)">
+            <span class="chip-icon">🏙️</span>
+            Co je Smart City 3.0?
+          </button>
+          <button class="chip" onclick="askChip(this)">
+            <span class="chip-icon">🇫🇷</span>
+            Shrnout France 2030
+          </button>
+          <button class="chip" onclick="askChip(this)">
+            <span class="chip-icon">⚖️</span>
+            Srovnat ČR vs Francie
+          </button>
+          <button class="chip" onclick="askChip(this)">
+            <span class="chip-icon">🔬</span>
+            Co je regulační pískoviště?
+          </button>
+          <button class="chip" onclick="askChip(this)">
+            <span class="chip-icon">💡</span>
+            Hlavní závěry diplomky
+          </button>
+          <button class="chip" onclick="askChip(this)">
+            <span class="chip-icon">🎓</span>
+            Možné otázky u obhajoby
+          </button>
+        </div>
+      </div>
+
+      <!-- Messages container -->
+      <div id="messages"></div>
+    </div>
+
+    <!-- Scroll to bottom -->
+    <button class="scroll-btn" id="scroll-btn" onclick="scrollToBottom()">↓</button>
+
+    <!-- Input -->
+    <div class="input-wrap">
+      <div id="error-container"></div>
+      <div class="input-container">
+        <div class="input-row">
+          <textarea id="chat-input" placeholder="Zeptej se na cokoli z tvé diplomky…" rows="1"
+            onkeydown="handleKey(event)" oninput="onInput(this)"></textarea>
+          <button class="send-btn" id="send-btn" onclick="sendMessage()" disabled>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg>
+          </button>
+        </div>
+        <div class="input-bottom">
+          <div class="input-tools">
+            <button class="tool-btn" title="Příloha" onclick="showToast('Funkce příloh brzy k dispozici')">📎</button>
+            <button class="tool-btn" title="Mikrofon" onclick="showToast('Hlasový vstup brzy k dispozici')">🎤</button>
+          </div>
+          <span class="char-counter" id="char-counter">0 / 2000</span>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<script>
+// ══════════════════════════════════════════
+// THESIS CONTEXT — extracted from DP
+// ══════════════════════════════════════════
+const THESIS_CONTEXT = `
+Jsi specializovaný AI asistent pro diplomovou práci Bc. Martina Beránka.
+
+NÁZEV PRÁCE: "Politiky a strategie EU pro podporu Smart Cities"
+INSTITUCE: Česká zemědělská univerzita v Praze, Provozně ekonomická fakulta, Katedra ekonomiky
+VEDOUCÍ: doc. Ing. Karel Tomšík, Ph.D.
+ROK: 2026
+
+ABSTRAKT:
+Práce se věnuje komparativní analýze systémů veřejné správy a regionálních politik zaměřených na podporu konceptu Smart Cities. Hlavní cíl: vyhodnotit efektivnost institucionálních rámců a investičních strategií v kontextu digitální transformace měst — srovnání ČR a Francie jako dvou odlišných modelů evropské inovační politiky.
+
+KLÍČOVÉ POJMY:
+- Smart City: komplexní koncept inteligentního řízení města využívající digitální technologie (IoT, AI, big data, cloud)
+- Smart Economy, Smart People, Smart Governance, Smart Living, Smart Building, Smart Mobility — 6 pilířů
+- Digital Twins: digitální dvojčata měst
+- Open Data: otevřená veřejná data
+- Smart Governance: inteligentní veřejná správa
+- Sustainable City vs Smart City (rozdíly)
+- Smart City 3.0: spolutvorba s občany, tržní orientace, integrace soukromého sektoru
+
+TEORETICKÁ ČÁST (kapitola 3):
+3.1 Historický vývoj a definice Smart City — od technologicky orientovaného pojetí (1990s IBM) po citizen-centric přístup (Smart City 3.0)
+3.2 Strukturální pilíře: 6 pilířů smart cities (Economy, People, Governance, Living, Building, Mobility)
+3.3 Modely vládnutí: víceúrovňová analýza, role veřejné správy, legislativní rámec v ČR
+3.4 Technologie: IoT, Big Data, Cloud Computing, AI ve veřejné správě, městský datový ekosystém
+3.5 Ekonomické rámce: Smart Economy, makroekonomické determinanty EU, digitální daňová správa, AI v městských financích
+3.6 Financování: EU fondy 2021–2027, program DIGITAL, PPP (partnerství veřejného a soukromého sektoru), investiční kapacita samospráv
+3.7 Udržitelný rozvoj: cirkulární ekonomika, Česko 2040
+3.8 Bezpečnost: kybernetická ochrana Smart Cities, etické výzvy
+3.9 Realizace a bariéry rozvoje Smart City
+
+ANALYTICKÁ ČÁST — FRANCIE (kapitola 4.1–4.4):
+- France 2030: strategický plán suverénního národního financování (54 mld. EUR)
+- Filozofie: strategická selektivita, technologická suverenita, dlouhodobé cíle
+- Sektorová dekarbonizace urbanismu: nízkoemisní stavební materiály
+- Lab2051: francouzský inovační mediátor — model pro ČR
+- Mechanismus jednotného řízení a role operátorů v rozvoji území
+- Teritoriální implementace a regionální partnerství
+- Vertikální integrace inovací: od výzkumu k regionální industrializaci
+- PNRR synergie: kombinace evropských a národních zdrojů
+- Legislativní reformy jako hybná síla
+- ROI analýza prvních fází France 2030
+
+SROVNÁNÍ ČR vs FRANCIE:
+ČESKÁ REPUBLIKA:
+- Vysoká dotační závislost na evropských fondech (OP TAK, IROP, Digitální ČR)
+- Plošné rozdělování prostředků bez strategické selektivity
+- Administrativní rigidita, pomalá dynamika reálného dopadu investic
+- Omezená schopnost mobilizovat soukromý kapitál
+- Absence národního inovačního mediátora
+- Chybí legislativní ukotvení inkubační fáze projektů
+
+FRANCIE:
+- Suverénní národní financování (France 2030, 54 mld. EUR)
+- Strategická selektivita projektů
+- Dlouhodobá technologická suverenita
+- Efektivní mobilizace soukromého kapitálu
+- Lab2051 jako inovační mediátor
+- Regulační pískoviště pro testování inovací
+
+DOPORUČENÍ PRO ČR (závěry práce):
+1. Zřízení národního mediátora pro inovace po vzoru Lab2051
+2. Legislativní ukotvení inkubační fáze projektů
+3. Zavedení regulačních pískovišť (regulatory sandboxes)
+4. Snížení dotační závislosti, přilákání soukromého kapitálu
+5. Strategická selektivita při rozdělování prostředků
+
+KLÍČOVÁ SLOVA: Česká republika, digitální transformace, Francie 2030, investiční strategie, Lab2051, regionální rozvoj, regulační pískoviště, Smart City, technologická suverenita, veřejná správa.
+
+METODOLOGIE: Komparativní analýza, případové studie (ČR, Francie), analýza dokumentů EU, výpočet ROI investic.
+
+Odpovídej v češtině, buď konkrétní a odkazuj na relevantní části práce. Při otázkách u obhajoby pomoz s přípravou věcných odpovědí. Pokud se ptají na něco mimo rozsah práce, upozorni na to.
+`.trim();
+
+// ══════════════════════════════════════════
+// STATE
+// ══════════════════════════════════════════
+let apiKey = localStorage.getItem('dp_gemini_key') || '';
+let messages = []; // conversation history for API
+let isLoading = false;
+let chatHistory = []; // sidebar history entries
+
+// ══════════════════════════════════════════
+// INIT
+// ══════════════════════════════════════════
+window.addEventListener('load', () => {
+  const keyInput = document.getElementById('api-key-input');
+  keyInput.addEventListener('input', () => {
+    document.getElementById('save-key-btn').disabled = keyInput.value.trim().length < 10;
+  });
+
+  document.getElementById('chat-input').addEventListener('input', function() {
+    onInput(this);
+  });
+
+  // Auto-show modal if no key
+  if (!apiKey) {
+    setTimeout(openModal, 600);
+  }
+
+  // Scroll detection
+  const chatArea = document.getElementById('chat-area');
+  chatArea.addEventListener('scroll', () => {
+    const sb = document.getElementById('scroll-btn');
+    const nearBottom = chatArea.scrollHeight - chatArea.scrollTop - chatArea.clientHeight < 150;
+    sb.classList.toggle('show', !nearBottom && chatArea.scrollTop > 300);
+  });
+});
+
+// ══════════════════════════════════════════
+// API KEY MODAL
+// ══════════════════════════════════════════
+function openModal() {
+  const m = document.getElementById('modal');
+  m.style.display = 'flex';
+  const inp = document.getElementById('api-key-input');
+  inp.value = apiKey;
+  document.getElementById('save-key-btn').disabled = inp.value.trim().length < 10;
+  setTimeout(() => inp.focus(), 100);
+}
+function closeModal() {
+  document.getElementById('modal').style.display = 'none';
+}
+function deleteKey() {
+  if (!confirm('Opravdu vymazat uložený API klíč?')) return;
+  apiKey = '';
+  localStorage.removeItem('dp_gemini_key');
+  showToast('API klíč byl vymazán');
+  setTimeout(openModal, 500);
+}
+
+  const val = document.getElementById('api-key-input').value.trim();
+  if (!val) return;
+  apiKey = val;
+  localStorage.setItem('dp_gemini_key', val);
+  closeModal();
+  showError('', false);
+}
+
+// ══════════════════════════════════════════
+// INPUT HANDLING
+// ══════════════════════════════════════════
+function onInput(el) {
+  el.style.height = 'auto';
+  el.style.height = Math.min(el.scrollHeight, 140) + 'px';
+  const len = el.value.length;
+  document.getElementById('char-counter').textContent = `${len} / 2000`;
+  document.getElementById('send-btn').disabled = len === 0 || isLoading;
+}
+
+function handleKey(e) {
+  if (e.key === 'Enter' && !e.shiftKey) {
+    e.preventDefault();
+    if (!document.getElementById('send-btn').disabled) sendMessage();
+  }
+}
+
+function askChip(btn) {
+  const text = btn.textContent.trim();
+  document.getElementById('chat-input').value = text;
+  onInput(document.getElementById('chat-input'));
+  sendMessage();
+}
+
+// ══════════════════════════════════════════
+// SEND MESSAGE
+// ══════════════════════════════════════════
+async function sendMessage() {
+  const input = document.getElementById('chat-input');
+  const text = input.value.trim();
+  if (!text || isLoading) return;
+
+  if (!apiKey) {
+    showError('⚠ Nejprve vložte API klíč (tlačítko vpravo nahoře nebo v postranním panelu).');
+    openModal();
+    return;
+  }
+
+  // Hide welcome
+  document.getElementById('welcome-screen').style.display = 'none';
+  showError('', false);
+
+  // Add user message to UI
+  appendMessage('user', text);
+  messages.push({ role: 'user', content: text });
+
+  // Clear input
+  input.value = '';
+  input.style.height = 'auto';
+  document.getElementById('char-counter').textContent = '0 / 2000';
+  document.getElementById('send-btn').disabled = true;
+
+  // Show typing
+  const typingEl = showTyping();
+  isLoading = true;
+  scrollToBottom();
+
+  try {
+    const response = await callClaude(messages);
+    typingEl.remove();
+    appendMessage('ai', response);
+    messages.push({ role: 'assistant', content: response });
+    updateHistory(text);
+  } catch (err) {
+    typingEl.remove();
+    const errMsg = parseError(err);
+    showError(errMsg);
+  } finally {
+    isLoading = false;
+    document.getElementById('send-btn').disabled = false;
+    scrollToBottom();
+  }
+}
+
+// ══════════════════════════════════════════
+// CLAUDE API CALL
+// ══════════════════════════════════════════
+async function callClaude(msgs) {
+  const contents = [
+    { role: 'user', parts: [{ text: THESIS_CONTEXT }] },
+    { role: 'model', parts: [{ text: 'Rozumím, jsem připraven pomoci s diplomovou prací o Smart Cities.' }] },
+    ...msgs.slice(-18).map(m => ({
+      role: m.role === 'user' ? 'user' : 'model',
+      parts: [{ text: m.content }]
+    }))
+  ];
+  const res = await fetch(
+    `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`,
+    {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ contents })
+    }
+  );
+  if (!res.ok) {
+    const errData = await res.json().catch(() => ({}));
+    throw { status: res.status, data: errData };
+  }
+  const data = await res.json();
+  return data.candidates?.[0]?.content?.parts?.[0]?.text || '(prázdná odpověď)';
+}
+
+function parseError(err) {
+  if (err.status === 400) return '🔑 Neplatný API klíč. Zadejte správný Gemini klíč (začíná AIza...).';
+  if (err.status === 403) return '🔑 Neplatný nebo zakázaný API klíč. Zkontrolujte klíč na aistudio.google.com/apikey';
+  if (err.status === 429) return '⏱ Překročen limit požadavků. Chvíli počkejte a zkuste znovu.';
+  if (err.status === 500) return '🔧 Chyba serveru Google. Zkuste to za chvíli.';
+  if (err.message?.includes('fetch') || err.message?.includes('Failed to fetch'))
+    return '🌐 Chyba připojení. Zkontrolujte internetové připojení.';
+  return `❌ Nastala chyba: ${err.data?.error?.message || err.message || 'Neznámá chyba'}`;
+}
+
+// ══════════════════════════════════════════
+// UI HELPERS
+// ══════════════════════════════════════════
+function appendMessage(role, text) {
+  const container = document.getElementById('messages');
+  const msg = document.createElement('div');
+  msg.className = `msg ${role}`;
+
+  const now = new Date().toLocaleTimeString('cs-CZ', { hour: '2-digit', minute: '2-digit' });
+  const initials = role === 'user' ? 'MB' : 'DP';
+
+  const formatted = role === 'ai' ? formatMarkdown(text) : escHtml(text);
+
+  let sourcesHtml = '';
+  if (role === 'ai') {
+    sourcesHtml = `
+      <div class="source-chips">
+        <div class="source-chip"><span>📄</span> DP Beránek, 2026</div>
+        <div class="source-chip"><span>🇪🇺</span> EU Smart Cities</div>
+      </div>`;
+  }
+
+  let actionsHtml = '';
+  if (role === 'ai') {
+    actionsHtml = `
+      <div class="msg-actions">
+        <button class="msg-act-btn" title="Kopírovat" onclick="copyMsg(this, ${JSON.stringify(text)})">📋</button>
+        <button class="msg-act-btn" title="Regenerovat" onclick="regenMsg()">🔄</button>
+        <button class="msg-act-btn" title="Dobré" onclick="showToast('Díky za zpětnou vazbu!')">👍</button>
+      </div>`;
+  }
+
+  msg.innerHTML = `
+    <div class="msg-av">${initials}</div>
+    <div class="msg-content">
+      <div class="msg-bubble">${formatted}</div>
+      ${role === 'ai' ? sourcesHtml : ''}
+      <div class="msg-time">${now}</div>
+      ${actionsHtml}
+    </div>`;
+
+  container.appendChild(msg);
+  scrollToBottom();
+}
+
+function showTyping() {
+  const container = document.getElementById('messages');
+  const el = document.createElement('div');
+  el.className = 'msg ai';
+  el.id = 'typing-el';
+  el.innerHTML = `
+    <div class="msg-av">DP</div>
+    <div class="msg-content">
+      <div class="typing">
+        <div class="dot"></div><div class="dot"></div><div class="dot"></div>
+      </div>
+    </div>`;
+  container.appendChild(el);
+  scrollToBottom();
+  return el;
+}
+
+function formatMarkdown(text) {
+  return text
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+    .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+    .replace(/\*(.+?)\*/g, '<em>$1</em>')
+    .replace(/`([^`]+)`/g, '<code>$1</code>')
+    .replace(/^### (.+)$/gm, '<h3>$1</h3>')
+    .replace(/^## (.+)$/gm, '<h3>$1</h3>')
+    .replace(/^> (.+)$/gm, '<blockquote>$1</blockquote>')
+    .replace(/^\d+\. (.+)$/gm, '<li>$1</li>')
+    .replace(/^[-*] (.+)$/gm, '<li>$1</li>')
+    .replace(/(<li>.*<\/li>\n?)+/g, s => `<ul>${s}</ul>`)
+    .replace(/\n\n/g, '</p><p>')
+    .replace(/\n/g, '<br>')
+    .replace(/^(?!<[hupb])/, '<p>')
+    .replace(/(?<!\>)$/, '</p>');
+}
+
+function escHtml(t) {
+  return t.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+function showError(msg, show = true) {
+  const c = document.getElementById('error-container');
+  if (!show || !msg) { c.innerHTML = ''; return; }
+  c.innerHTML = `<div class="error-banner">⚠ ${escHtml(msg)}</div>`;
+}
+
+function scrollToBottom() {
+  const ca = document.getElementById('chat-area');
+  setTimeout(() => ca.scrollTo({ top: ca.scrollHeight, behavior: 'smooth' }), 50);
+}
+
+function copyMsg(btn, text) {
+  navigator.clipboard.writeText(text).then(() => {
+    btn.textContent = '✅';
+    setTimeout(() => btn.textContent = '📋', 1500);
+  });
+}
+
+function regenMsg() {
+  if (messages.length < 2 || isLoading) return;
+  // Remove last AI message
+  messages.pop();
+  const container = document.getElementById('messages');
+  const msgs = container.querySelectorAll('.msg');
+  if (msgs.length) msgs[msgs.length - 1].remove();
+  // Re-send
+  const typingEl = showTyping();
+  isLoading = true;
+  callClaude(messages).then(response => {
+    typingEl.remove();
+    appendMessage('ai', response);
+    messages.push({ role: 'assistant', content: response });
+  }).catch(err => {
+    typingEl.remove();
+    showError(parseError(err));
+  }).finally(() => {
+    isLoading = false;
+    scrollToBottom();
+  });
+}
+
+// ══════════════════════════════════════════
+// SIDEBAR & HISTORY
+// ══════════════════════════════════════════
+function toggleSidebar() {
+  const sb = document.getElementById('sidebar');
+  const ov = document.getElementById('sidebar-overlay');
+  sb.classList.toggle('open');
+  ov.classList.toggle('show');
+}
+function closeSidebar() {
+  document.getElementById('sidebar').classList.remove('open');
+  document.getElementById('sidebar-overlay').classList.remove('show');
+}
+
+function newChat() {
+  messages = [];
+  document.getElementById('messages').innerHTML = '';
+  document.getElementById('welcome-screen').style.display = '';
+  showError('', false);
+  closeSidebar();
+  document.querySelectorAll('.history-item').forEach(i => i.classList.remove('active'));
+  document.querySelector('.history-item')?.classList.add('active');
+}
+
+function clearChat() {
+  if (confirm('Vymazat celou historii chatu?')) newChat();
+}
+
+function updateHistory(firstMsg) {
+  const list = document.getElementById('history-list');
+  const existing = list.querySelector('.history-item.active');
+  const label = firstMsg.length > 35 ? firstMsg.slice(0, 35) + '…' : firstMsg;
+
+  if (existing && existing.querySelector('span').textContent === 'Nový chat') {
+    existing.querySelector('span').textContent = label;
+  } else {
+    const item = document.createElement('div');
+    item.className = 'history-item';
+    item.innerHTML = `<div class="h-dot"></div><span>${label}</span>`;
+    item.onclick = () => {
+      document.querySelectorAll('.history-item').forEach(i => i.classList.remove('active'));
+      item.classList.add('active');
+    };
+    list.insertBefore(item, list.firstChild);
+  }
+}
+
+function showToast(msg) {
+  // Simple toast via topbar-subtitle flicker
+  const sub = document.querySelector('.topbar-subtitle');
+  const orig = sub.textContent;
+  sub.textContent = msg;
+  sub.style.color = 'var(--accent3)';
+  setTimeout(() => { sub.textContent = orig; sub.style.color = ''; }, 2200);
+}
+</script>
+</body>
+</html>
